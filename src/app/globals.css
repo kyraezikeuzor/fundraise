@@ -1,0 +1,20 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-background text-foreground antialiased;
+}
+
+/* Best-effort Givebutter CTA polish when buttons are in light DOM */
+givebutter-widget {
+  display: block;
+  width: 100%;
+  margin-inline: auto;
+}
+
+givebutter-widget button,
+givebutter-widget [role="button"] {
+  --gb-primary: #ff971e;
+  --gb-brand: #ff971e;
+}
