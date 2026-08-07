@@ -164,7 +164,7 @@ export default function VolunteerLinkFinder() {
                 {result.linkDisplay}
               </p>
               <p className="mt-1.5 text-sm text-muted-foreground">
-                Share this link so donations earn hours for {result.displayName}.
+                Share this link. Every donation counts toward your hours.
               </p>
             </div>
             <div className="flex flex-col gap-2 sm:flex-row">
