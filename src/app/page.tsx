@@ -1,4 +1,3 @@
-import DonateFooter from "@/components/DonateFooter";
 import DonateHeader from "@/components/DonateHeader";
 import VolunteerLinkFinder from "@/components/VolunteerLinkFinder";
 
@@ -12,8 +11,6 @@ export default function Home() {
           <VolunteerLinkFinder />
         </div>
       </main>
-
-      <DonateFooter />
     </div>
   );
 }

@@ -20,6 +20,12 @@ export function fundraiseDisplayUrl(slug: string): string {
   return `${FUNDRAISE_HOST}/${slug}`;
 }
 
+/** Short display URL without the trailing Airtable record id. */
+export function fundraiseShortDisplayUrl(slug: string): string {
+  const shortSlug = slug.replace(/-rec[a-zA-Z0-9]+$/i, "") || slug;
+  return `${FUNDRAISE_HOST}/${shortSlug}`;
+}
+
 /** Absolute URL used for copy / open-in-new-tab. */
 export function fundraiseAbsoluteUrl(slug: string): string {
   if (typeof window !== "undefined") {

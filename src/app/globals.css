@@ -6,6 +6,17 @@ body {
   @apply bg-background text-foreground antialiased;
 }
 
+/* Neutralize browser autofill blue/yellow wash on form inputs */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-text-fill-color: #1f1f1f;
+  caret-color: #1f1f1f;
+  box-shadow: 0 0 0 1000px #ffffff inset !important;
+  transition: background-color 99999s ease-in-out 0s;
+}
+
 /* Best-effort Givebutter CTA polish when buttons are in light DOM */
 givebutter-widget {
   display: block;

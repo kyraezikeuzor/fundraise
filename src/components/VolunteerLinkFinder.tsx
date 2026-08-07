@@ -2,13 +2,10 @@
 
 import { useState, type FormEvent } from "react";
 import { Button, Card, CardContent, Input } from "@omelora/sunrise";
-import { APPLY_URL, fundraiseAbsoluteUrl } from "@/lib/givebutter";
-
-const STEPS = [
-  "Enter your Omelora email",
-  "Get your personal fundraiser link",
-  "Share it with your community",
-] as const;
+import {
+  APPLY_URL,
+  fundraiseAbsoluteUrl,
+} from "@/lib/givebutter";
 
 type LookupResult =
   | { status: "idle" }
@@ -90,35 +87,17 @@ export default function VolunteerLinkFinder() {
   return (
     <div className="mx-auto flex w-full max-w-[500px] flex-col gap-4">
       <Card
-        variant="default"
-        className="w-full border-2 px-5 py-8 shadow-sm sm:px-6 sm:py-10"
+        variant="elevated"
+        className="w-full border border-border px-6 py-10 shadow-md sm:px-8 sm:py-12"
       >
         <CardContent className="flex flex-col gap-6 p-0">
           <div className="flex flex-col items-center gap-2.5 text-center">
             <h1 className="text-2xl font-bold leading-tight tracking-tight text-foreground sm:text-3xl">
-              Grab your fundraiser link
+              Find Fundraiser Link
             </h1>
             <p className="text-base font-medium text-muted-foreground sm:text-lg">
-              Every $10 raised earns you 1 volunteer hour
+              Enter your email to find your personal link.
             </p>
-          </div>
-
-          <div className="flex flex-col gap-2.5">
-            <h2 className="text-base font-semibold text-foreground">
-              How it works
-            </h2>
-            <ol className="flex flex-col gap-2">
-              {STEPS.map((step, index) => (
-                <li key={step} className="flex items-center gap-3">
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold text-foreground">
-                    {index + 1}
-                  </div>
-                  <p className="text-base font-medium leading-snug text-foreground">
-                    {step}
-                  </p>
-                </li>
-              ))}
-            </ol>
           </div>
 
           <form onSubmit={onSubmit} className="flex flex-col gap-3">
@@ -128,10 +107,11 @@ export default function VolunteerLinkFinder() {
               type="email"
               autoComplete="email"
               required
-              label="Enter your email"
+              label="Volunteer Email"
               placeholder="you@example.com"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
+              className="bg-background"
             />
             <Button
               type="submit"
@@ -140,19 +120,9 @@ export default function VolunteerLinkFinder() {
               className="w-full font-semibold"
               disabled={result.status === "loading"}
             >
-              {result.status === "loading" ? "Looking up…" : "Get My Link"}
+              {result.status === "loading" ? "Looking up…" : "Find Link"}
             </Button>
           </form>
-
-          <p className="text-center text-sm text-muted-foreground">
-            Questions? Email{" "}
-            <a
-              href="mailto:volunteer@omelora.org"
-              className="font-medium text-primary underline underline-offset-2 hover:opacity-80"
-            >
-              volunteer@omelora.org
-            </a>
-          </p>
 
           {result.status === "not_found" && (
             <p className="rounded-lg border border-border bg-muted px-3 py-2.5 text-sm text-foreground">
@@ -178,13 +148,19 @@ export default function VolunteerLinkFinder() {
       </Card>
 
       {result.status === "found" && (
-        <Card variant="default" className="w-full border-2 shadow-sm">
+        <Card
+          variant="elevated"
+          className="w-full border border-border px-6 py-6 shadow-md sm:px-8"
+        >
           <CardContent className="flex flex-col gap-3 p-0">
-            <div>
+            <div className="text-center">
               <p className="text-sm font-medium text-muted-foreground">
-                Your fundraiser link
+                Your Fundraiser Link
               </p>
-              <p className="mt-1 break-all font-mono text-sm text-foreground">
+              <p
+                className="mt-1 truncate font-mono text-sm text-foreground"
+                title={fundraiseAbsoluteUrl(result.slug)}
+              >
                 {result.linkDisplay}
               </p>
               <p className="mt-1.5 text-sm text-muted-foreground">
@@ -194,8 +170,8 @@ export default function VolunteerLinkFinder() {
             <div className="flex flex-col gap-2 sm:flex-row">
               <Button
                 type="button"
-                variant="primary"
-                className="w-full font-semibold sm:flex-1"
+                className="w-full font-semibold text-white shadow-sm hover:opacity-90 sm:flex-1"
+                style={{ backgroundColor: "#09b5ff" }}
                 onClick={() => copyLink(result.slug)}
               >
                 {copied ? "Copied!" : "Copy Link"}
