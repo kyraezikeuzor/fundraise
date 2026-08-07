@@ -18,7 +18,7 @@ export default function RecentDonations({
 
       {donations.length === 0 ? (
         <p className="mt-3 text-sm text-muted-foreground">
-          No donations yet — be the first to give.
+          Be the first to donate.
         </p>
       ) : (
         <ul className="mt-4 flex flex-col gap-4">

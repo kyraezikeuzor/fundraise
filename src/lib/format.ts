@@ -1,4 +1,4 @@
-export const FUNDRAISE_GOAL_USD = 50;
+export const FUNDRAISE_GOAL_USD = 100;
 
 export const LOGO_URL =
   "https://images.fillout.com/orgid-737092/flowpublicid-uti4bix9xv/widgetid-default/uLyhUKhp6oTaSjVFoLd2M8/LOGO.png";

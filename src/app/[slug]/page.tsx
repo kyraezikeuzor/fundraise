@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { Card, CardContent } from "@omelora/sunrise";
 import DonateFaq from "@/components/DonateFaq";
-import DonateFooter from "@/components/DonateFooter";
 import DonateHeader from "@/components/DonateHeader";
 import DonationSidebar from "@/components/DonationSidebar";
 import FundraisingProgress from "@/components/FundraisingProgress";
@@ -26,10 +25,10 @@ export async function generateMetadata({
   if (!person) {
     return { title: "Volunteer not found | Omelora" };
   }
-  const firstName = person.firstName || person.displayName;
+  const fullName = person.displayName;
   return {
-    title: `Support ${firstName}'s Fundraiser`,
-    description: `Support ${person.displayName}'s fundraiser for Omelora. Your donation helps expand youth education programs worldwide.`,
+    title: `${fullName}'s Fundraiser`,
+    description: `Support ${fullName}'s fundraiser for Omelora. Your donation helps expand youth education programs worldwide.`,
   };
 }
 
@@ -42,7 +41,6 @@ export default async function VolunteerFundraisePage({ params }: PageProps) {
 
   if (!person) notFound();
 
-  const firstName = person.firstName || person.displayName;
   const fullName = person.displayName;
   const { amountRaised, recentDonations } = await getPersonFundraisingStats(
     person.id
@@ -58,94 +56,94 @@ export default async function VolunteerFundraisePage({ params }: PageProps) {
       : `https://${FUNDRAISE_HOST}/${slug}`;
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div
+      className="min-h-screen bg-cover bg-center bg-no-repeat text-foreground"
+      style={{ backgroundImage: "url(/donate-bg.png)" }}
+    >
       <DonateHeader />
 
-      <main className="bg-background">
-        <div className="mx-auto max-w-6xl px-6 pb-10 pt-14">
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-x-10 lg:gap-y-6">
+      <main>
+        <div className="mx-auto max-w-5xl px-5 pb-10 pt-14 sm:px-8 lg:px-10">
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:items-start lg:gap-x-10">
             {/* On mobile/medium: shared max width matching donation box. On lg: unwrap into grid. */}
-            <div className="mx-auto flex w-full max-w-md flex-col gap-6 lg:contents">
-              <h1 className="text-center text-[1.75rem] font-bold leading-tight tracking-tight text-foreground sm:text-[1.9rem] lg:col-start-1 lg:text-left lg:text-[2.15rem] xl:text-[2.5rem]">
-                Support {firstName}&apos;s Fundraiser
-              </h1>
-
+            <div className="mx-auto flex w-full max-w-md flex-col gap-8 lg:contents">
               <Card
-                variant="default"
-                className="w-full border-2 shadow-sm lg:col-start-1"
+                variant="elevated"
+                className="relative w-full overflow-hidden !border-0 bg-background !p-0 !shadow-none sm:!p-0 lg:col-start-1"
               >
-                <CardContent className="p-0">
-                  <FundraisingProgress amountRaised={amountRaised} />
+                <div className="relative">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/fundraise-hero.jpg"
+                    alt="Students holding books at an Omelora-supported school"
+                    className="aspect-[2/1] w-full object-cover"
+                  />
+                  <ShareButton
+                    url={shareUrl}
+                    className="absolute right-3 top-3 z-10 w-auto bg-background/95 sm:right-4 sm:top-4"
+                  />
+                </div>
+                <CardContent className="flex flex-col gap-2.5 px-6 pb-6 pt-6 sm:px-8 sm:pb-8 sm:pt-8">
+                  <h1 className="min-w-0 text-left text-2xl font-bold leading-tight tracking-tight text-foreground sm:text-3xl">
+                    {fullName}&apos;s Fundraiser
+                  </h1>
+
+                  <FundraisingProgress
+                    amountRaised={amountRaised}
+                    className="mb-2"
+                  />
+
+                  <p className="text-base leading-relaxed text-foreground sm:text-lg">
+                    I&apos;m raising money for a cause that&apos;s important to
+                    me. I volunteer at Omelora. We&apos;re a group of 3000 high
+                    school and college students adapting education resources to
+                    schools abroad to improve educational equality. Please
+                    donate today to help me show support and keep our programs
+                    running!
+                  </p>
+
+                  <p className="text-base text-muted-foreground">
+                    Want to learn more? Email{" "}
+                    <a
+                      href="mailto:contact@omelora.org"
+                      className="font-medium text-primary underline underline-offset-2 hover:opacity-80"
+                    >
+                      contact@omelora.org
+                    </a>
+                    .
+                  </p>
                 </CardContent>
               </Card>
 
-              <aside className="w-full min-w-0 lg:col-start-2 lg:row-span-3 lg:row-start-1 lg:max-w-lg lg:justify-self-end">
-                <Card variant="default" className="w-full border-2 shadow-sm">
-                  <CardContent className="flex flex-col gap-6 p-0">
-                    <DonationSidebar slug={slug} volunteerName={fullName} />
-                    <ShareButton url={shareUrl} />
-
-                    <p className="text-base text-muted-foreground">
-                      Want to learn more? Email{" "}
-                      <a
-                        href="mailto:contact@omelora.org"
-                        className="font-medium text-primary underline underline-offset-2 hover:opacity-80"
-                      >
-                        contact@omelora.org
-                      </a>
-                      .
-                    </p>
-
-                    <RecentDonations donations={recentDonations} />
-                  </CardContent>
-                </Card>
+              <aside className="w-full min-w-0 lg:col-start-2 lg:row-start-1">
+                <DonationSidebar slug={slug} volunteerName={fullName} />
               </aside>
             </div>
-
-            <section className="mx-auto flex w-full max-w-md flex-col gap-6 lg:col-start-1 lg:mx-0 lg:max-w-none">
-              <div className="flex flex-col gap-1.5">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/classroom.png"
-                  alt="Students in an Omelora-supported classroom"
-                  className="aspect-[2/1] w-full rounded-xl object-cover"
-                />
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  Meddraphil Foundation of Uganda. Omelora supports places like
-                  these.
-                </p>
-              </div>
-
-              <ul className="flex list-disc flex-col gap-2 pl-5 text-base leading-relaxed text-foreground sm:text-lg">
-                <li>
-                  <strong>Expand youth education access</strong> so more
-                  students can learn, create, and lead in their communities.
-                </li>
-                <li>
-                  <strong>Fund learning materials and chapter programs</strong>{" "}
-                  that help young people thrive around the world.
-                </li>
-                <li>
-                  <strong>Grow a youth-led movement</strong> of volunteers
-                  building opportunity through Omelora.
-                </li>
-                <li>
-                  <strong>
-                    Credit every gift to {firstName}&apos;s fundraiser
-                  </strong>{" "}
-                  so their outreach directly powers this impact.
-                </li>
-              </ul>
-            </section>
           </div>
 
           <div className="mt-10">
-            <DonateFaq />
+            <Card
+              variant="elevated"
+              className="w-full border border-white bg-background !p-6 !shadow-none sm:!p-8"
+            >
+              <CardContent className="p-0">
+                <RecentDonations donations={recentDonations} />
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="mt-10">
+            <Card
+              variant="elevated"
+              className="w-full border border-white bg-background !p-6 !shadow-none sm:!p-8"
+            >
+              <CardContent className="p-0">
+                <DonateFaq />
+              </CardContent>
+            </Card>
           </div>
         </div>
       </main>
-
-      <DonateFooter />
     </div>
   );
 }
