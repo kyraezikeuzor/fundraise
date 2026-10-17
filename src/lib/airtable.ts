@@ -248,7 +248,7 @@ export async function getPersonBySlug(slug: string): Promise<Person | null> {
 /**
  * Pending: the browser said a gift finished; not counted until Givebutter confirms.
  * Verified: Givebutter's signed webhook confirmed the payment. Counted.
- * Logged: legacy browser-only records from before verification. Still counted.
+ * Logged / Submitted: older browser-only records from before verification. Still counted.
  * Flagged: the volunteer link didn't match a Person.
  * Refunded: Givebutter reported a refund. Not counted.
  */
@@ -256,7 +256,8 @@ export type DonationStatus = "Logged" | "Flagged" | "Pending" | "Verified" | "Re
 
 /** Statuses that add to a volunteer's total and recent donations. */
 export function countsTowardTotals(status: string | null | undefined): boolean {
-  return status === "Verified" || status === "Logged";
+  // "Submitted" and "Logged" are the statuses older records were saved with.
+  return status === "Verified" || status === "Logged" || status === "Submitted";
 }
 
 export interface DonationFields {
