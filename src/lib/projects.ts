@@ -18,7 +18,18 @@ type ProjectFields = {
   Thumbnail?: Attachment[];
   "Project Description"?: string;
   "Project Summary"?: string;
+  "Linked Activities"?: string[];
 };
+
+type ActivityFields = {
+  "Activity Name"?: string;
+  Track?: string;
+  Type?: string;
+  Location?: string;
+  Status?: string;
+};
+
+const ACTIVITIES_URL = process.env.NEXT_PUBLIC_ACTIVITIES_URL ?? "https://activities.omelora.org";
 
 type SupplyFields = {
   "Supply Name"?: string;
@@ -40,7 +51,9 @@ export type ProjectItem = SupplyForCart & {
   remaining: number;
 };
 
-export type Supporter = { id: string; name: string; summary: string; date: string };
+export type Supporter = { id: string; name: string; summary: string; date: string; amount: number };
+
+export type RelatedActivity = { id: string; title: string; track: string | null; where: string | null; url: string };
 
 export type ProjectPage = {
   id: string;
@@ -56,6 +69,8 @@ export type ProjectPage = {
   itemsFunded: number;
   amountRaised: number;
   supporters: Supporter[];
+  supporterCount: number;
+  activities: RelatedActivity[];
 };
 
 const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
@@ -119,10 +134,30 @@ export async function getProjectBySlug(slug: string): Promise<ProjectPage | null
   if (!record) return null;
   const f = record.fields;
   const centerId = f["Linked Center"]?.[0];
-  const [center, { items, donations }] = await Promise.all([
+  const activityIds = f["Linked Activities"] ?? [];
+  const [center, { items, donations }, activityRecords] = await Promise.all([
     centerId ? getRecord<{ Name?: string; Location?: string }>("Partners", centerId) : Promise.resolve(null),
     getProjectSupplies(id),
+    activityIds.length
+      ? listAllRecords<ActivityFields>("Activities", {
+          filterByFormula: `OR(${activityIds.slice(0, 50).map((a) => `RECORD_ID()='${a}'`).join(",")})`,
+        })
+      : Promise.resolve([]),
   ]);
+  // Open activities only, linking to the public Activities board.
+  const activities: RelatedActivity[] = activityRecords
+    .filter((a) => ["open", "active"].includes(a.fields.Status?.trim().toLowerCase() ?? ""))
+    .map((a) => {
+      const title = a.fields["Activity Name"]?.trim() || "Activity";
+      const location = a.fields.Location?.trim() || null;
+      return {
+        id: a.id,
+        title,
+        track: a.fields.Track?.trim() || null,
+        where: location && !/^(tbd|n\/a)$/i.test(location) ? location : null,
+        url: `${ACTIVITIES_URL}/${slugifySegment(title.replace(/['’]/g, ""))}-${a.id}`,
+      };
+    });
   const name = f["Project Name"]?.trim() || "Project";
   const nameById = new Map(items.map((item) => [item.id, item.name]));
 
@@ -139,7 +174,10 @@ export async function getProjectBySlug(slug: string): Promise<ProjectPage | null
     itemsNeeded: items.reduce((sum, item) => sum + Math.max(0, item.quantityNeeded - item.quantitySourcedInKind), 0),
     itemsFunded: items.reduce((sum, item) => sum + Math.min(item.funded, item.quantityNeeded), 0),
     amountRaised: donations.reduce((sum, d) => sum + d.value, 0),
+    supporterCount: donations.length,
+    activities,
     supporters: donations.slice(0, 6).map((d) => ({
+      amount: d.value,
       id: d.id,
       name: firstName(d.donorName),
       summary: [...parseItemLines(d.items)].map(([sid, q]) => `${q} × ${nameById.get(sid) ?? "item"}`).join(", ") || "a gift",
