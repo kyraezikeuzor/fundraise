@@ -14,6 +14,28 @@ function signatureIsValid(header: string | null): boolean {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
+/**
+ * Ask Givebutter's API whether this transaction really exists, so a test
+ * event ("sample_tid") or a forged request can never mark a gift Verified.
+ * Returns false when the API key is missing, so nothing is trusted unchecked.
+ */
+async function transactionExists(id: string): Promise<boolean> {
+  const apiKey = process.env.GIVEBUTTER_API_KEY;
+  if (!apiKey) {
+    console.warn("[givebutter webhook] GIVEBUTTER_API_KEY is not set; ignoring the event");
+    return false;
+  }
+  const res = await fetch(`https://api.givebutter.com/v1/transactions/${encodeURIComponent(id)}`, {
+    headers: { Authorization: `Bearer ${apiKey}`, Accept: "application/json" },
+    cache: "no-store",
+  });
+  if (res.status === 404) return false;
+  if (!res.ok) throw new Error(`Givebutter transaction lookup failed (${res.status})`);
+  const body = (await res.json()) as { data?: { status?: string }; status?: string };
+  const status = (body.data?.status ?? body.status ?? "").toLowerCase();
+  return !["failed", "cancelled", "canceled", "voided"].includes(status);
+}
+
 type Payload = { event?: string; type?: string; data?: Record<string, unknown> };
 
 const str = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : null);
@@ -49,6 +71,10 @@ export async function POST(request: Request) {
 
       // Givebutter retries deliveries; a transaction is recorded once.
       if (donations.some((d) => d.transactionId === id)) return NextResponse.json({ ok: true, duplicate: true });
+
+      if (!(await transactionExists(id))) {
+        return NextResponse.json({ ok: true, ignored: "not a real Givebutter transaction" });
+      }
 
       const campaignFilter = process.env.GIVEBUTTER_CAMPAIGN_ID;
       const campaign = (data.campaign ?? {}) as Record<string, unknown>;
