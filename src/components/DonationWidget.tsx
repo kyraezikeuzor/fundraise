@@ -78,8 +78,8 @@ export default function DonationWidget({
     const givebutter = ensureGivebutterEventBridge();
     let cancelled = false;
 
-    // LIMITATION: donation.complete is a browser-side event and could be faked.
-    // Fine for attributing volunteer fundraising credit; not for accounting.
+    // donation.complete happens in the browser and could be faked, so it only
+    // records which volunteer the gift was for. Givebutter's webhook confirms it.
     givebutter(
       "addEventListener",
       givebutter.EVENT.DONATION.COMPLETE,
@@ -114,6 +114,7 @@ export default function DonationWidget({
               total: donationObj.total ?? amount,
               comment: comment ?? null,
               donorName: donorName ?? null,
+              donorEmail: typeof donationObj.donor?.email === "string" ? donationObj.donor.email : null,
               frequency: donationObj.frequency ?? null,
               method: donationObj.method ?? null,
               sessionId: donationObj.sessionId ?? null,
@@ -172,9 +173,9 @@ export default function DonationWidget({
         >
           <h2 className="text-base font-bold text-foreground">Thank you!</h2>
           <p className="mt-1 text-sm leading-relaxed text-foreground">
-            Your ${logState.amount.toFixed(2)} donation was logged in support of{" "}
-            <strong>{volunteerName}</strong>. They&apos;ll get credit for
-            encouraging your gift.
+            Your ${logState.amount.toFixed(2)} donation supports{" "}
+            <strong>{volunteerName}</strong>. It will appear on this page once
+            Givebutter confirms the payment, usually within a few minutes.
           </p>
         </div>
       )}

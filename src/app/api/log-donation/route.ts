@@ -14,6 +14,7 @@ type LogDonationBody = {
   frequency?: unknown;
   method?: unknown;
   sessionId?: unknown;
+  donorEmail?: unknown;
   donationObj?: unknown;
 };
 
@@ -51,6 +52,7 @@ export async function POST(request: Request) {
   const frequency = asOptionalString(body.frequency);
   const paymentMethod = asOptionalString(body.method);
   const sessionId = asOptionalString(body.sessionId);
+  const donorEmail = asOptionalString(body.donorEmail)?.toLowerCase();
 
   if (!slug) {
     return NextResponse.json(
@@ -59,15 +61,15 @@ export async function POST(request: Request) {
     );
   }
 
-  if (amount === null) {
+  if (amount === null || amount > 100_000) {
     return NextResponse.json(
       { ok: false, error: "Invalid donation amount" },
       { status: 400 }
     );
   }
 
-  // Client-side Givebutter events are spoofable. Acceptable for volunteer
-  // credit attribution only — not proof of funds received.
+  // Browser events can be faked, so this record starts as Pending and does not
+  // count toward any total. The signed Givebutter webhook confirms it.
   if (body.donationObj) {
     console.log("[log-donation] raw donationObj:", body.donationObj);
   }
@@ -84,14 +86,15 @@ export async function POST(request: Request) {
       frequency,
       paymentMethod,
       sessionId,
-      status: person ? "Logged" : "Flagged",
+      status: person ? "Pending" : "Flagged",
       slug,
+      donorEmail: donorEmail ?? undefined,
     });
 
     return NextResponse.json({
       ok: true,
       donationId: donation.id,
-      status: person ? "Logged" : "Flagged",
+      status: person ? "Pending" : "Flagged",
       personId: person?.id ?? null,
       slug,
       amount,

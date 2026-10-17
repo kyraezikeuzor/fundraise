@@ -245,7 +245,19 @@ export async function getPersonBySlug(slug: string): Promise<Person | null> {
 
 // ——— Donations ———
 
-export type DonationStatus = "Logged" | "Flagged";
+/**
+ * Pending: the browser said a gift finished; not counted until Givebutter confirms.
+ * Verified: Givebutter's signed webhook confirmed the payment. Counted.
+ * Logged: legacy browser-only records from before verification. Still counted.
+ * Flagged: the volunteer link didn't match a Person.
+ * Refunded: Givebutter reported a refund. Not counted.
+ */
+export type DonationStatus = "Logged" | "Flagged" | "Pending" | "Verified" | "Refunded";
+
+/** Statuses that add to a volunteer's total and recent donations. */
+export function countsTowardTotals(status: string | null | undefined): boolean {
+  return status === "Verified" || status === "Logged";
+}
 
 export interface DonationFields {
   "Linked Person"?: string[];
@@ -259,6 +271,8 @@ export interface DonationFields {
   Status?: DonationStatus;
   Source?: string;
   Slug?: string;
+  "Givebutter Transaction ID"?: string;
+  "Donor Email"?: string;
 }
 
 const OPTIONAL_DONATION_FIELDS = [
@@ -296,6 +310,9 @@ export interface Donation {
   comment: string | null;
   status: string | null;
   slug: string | null;
+  personId: string | null;
+  donorEmail: string | null;
+  transactionId: string | null;
 }
 
 function mapDonationRecord(record: {
@@ -320,6 +337,9 @@ function mapDonationRecord(record: {
     comment: record.fields.Comment?.trim() || null,
     status: record.fields.Status ?? null,
     slug: record.fields.Slug?.trim() || null,
+    personId: record.fields["Linked Person"]?.[0] ?? null,
+    donorEmail: record.fields["Donor Email"]?.trim().toLowerCase() || null,
+    transactionId: record.fields["Givebutter Transaction ID"]?.trim() || null,
   };
 }
 
@@ -335,8 +355,10 @@ export async function getDonationsForPerson(
   const records = await listAllRecords<DonationFields>("Donations");
 
   const matched = records
-    .filter((record) =>
-      (record.fields["Linked Person"] ?? []).includes(personId)
+    .filter(
+      (record) =>
+        (record.fields["Linked Person"] ?? []).includes(personId) &&
+        countsTowardTotals(record.fields.Status)
     )
     .map(mapDonationRecord)
     .sort(
@@ -377,14 +399,19 @@ export async function createDonation(options: {
   status: DonationStatus;
   slug: string;
   donationDate?: string;
+  donorEmail?: string;
+  transactionId?: string;
+  source?: string;
 }): Promise<{ id: string; fields: DonationFields }> {
   const fields: DonationFields = {
     Value: options.value,
     "Donation Date": options.donationDate ?? new Date().toISOString(),
     Status: options.status,
-    Source: "Fundraise Page",
+    Source: options.source ?? "Fundraise Page",
     Slug: options.slug,
   };
+  if (options.donorEmail?.trim()) fields["Donor Email"] = options.donorEmail.trim().toLowerCase();
+  if (options.transactionId?.trim()) fields["Givebutter Transaction ID"] = options.transactionId.trim();
 
   if (options.personId) {
     fields["Linked Person"] = [options.personId];
@@ -434,4 +461,28 @@ export async function createDonation(options: {
     });
     return { id: created.id, fields: created.fields };
   }
+}
+
+
+async function updateRecord<TFields extends object>(table: string, id: string, fields: TFields) {
+  const { apiKey, baseId } = getConfig();
+  const res = await fetch(`${AIRTABLE_API_URL}/${baseId}/${encodeURIComponent(table)}/${id}`, {
+    method: "PATCH",
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ fields, typecast: true }),
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`Airtable ${table} update failed (${res.status}): ${await res.text()}`);
+}
+
+/** Every Donation, newest first. The table is small; reads stay simple. */
+export async function fetchAllDonations(): Promise<Donation[]> {
+  const records = await listAllRecords<DonationFields>("Donations");
+  return records
+    .map(mapDonationRecord)
+    .sort((a, b) => new Date(b.donationDate).getTime() - new Date(a.donationDate).getTime());
+}
+
+export async function updateDonation(id: string, fields: Partial<DonationFields>) {
+  await updateRecord("Donations", id, fields);
 }
