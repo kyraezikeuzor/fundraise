@@ -38,7 +38,7 @@ type AirtableListResponse<TFields> = {
   offset?: string;
 };
 
-async function listAllRecords<TFields>(
+export async function listAllRecords<TFields>(
   table: string,
   options?: { filterByFormula?: string }
 ): Promise<Array<{ id: string; createdTime: string; fields: TFields }>> {
@@ -78,7 +78,7 @@ async function listAllRecords<TFields>(
   return records;
 }
 
-async function createRecord<TFields extends object>(
+export async function createRecord<TFields extends object>(
   table: string,
   fields: TFields,
   options?: { typecast?: boolean }
@@ -110,7 +110,7 @@ async function createRecord<TFields extends object>(
   };
 }
 
-async function getRecord<TFields>(
+export async function getRecord<TFields>(
   table: string,
   id: string
 ): Promise<{ id: string; createdTime: string; fields: TFields } | null> {
@@ -274,6 +274,8 @@ export interface DonationFields {
   Slug?: string;
   "Givebutter Transaction ID"?: string;
   "Donor Email"?: string;
+  Items?: string;
+  "Linked Project"?: string[];
 }
 
 const OPTIONAL_DONATION_FIELDS = [
@@ -314,6 +316,8 @@ export interface Donation {
   personId: string | null;
   donorEmail: string | null;
   transactionId: string | null;
+  items: string | null;
+  projectId: string | null;
 }
 
 function mapDonationRecord(record: {
@@ -341,6 +345,8 @@ function mapDonationRecord(record: {
     personId: record.fields["Linked Person"]?.[0] ?? null,
     donorEmail: record.fields["Donor Email"]?.trim().toLowerCase() || null,
     transactionId: record.fields["Givebutter Transaction ID"]?.trim() || null,
+    items: record.fields.Items?.trim() || null,
+    projectId: record.fields["Linked Project"]?.[0] ?? null,
   };
 }
 
@@ -403,6 +409,8 @@ export async function createDonation(options: {
   donorEmail?: string;
   transactionId?: string;
   source?: string;
+  items?: string;
+  projectId?: string;
 }): Promise<{ id: string; fields: DonationFields }> {
   const fields: DonationFields = {
     Value: options.value,
@@ -413,6 +421,8 @@ export async function createDonation(options: {
   };
   if (options.donorEmail?.trim()) fields["Donor Email"] = options.donorEmail.trim().toLowerCase();
   if (options.transactionId?.trim()) fields["Givebutter Transaction ID"] = options.transactionId.trim();
+  if (options.items?.trim()) fields.Items = options.items.trim();
+  if (options.projectId) fields["Linked Project"] = [options.projectId];
 
   if (options.personId) {
     fields["Linked Person"] = [options.personId];
