@@ -62,7 +62,8 @@ const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0
 const image = (a?: Attachment[]) => a?.[0]?.thumbnails?.large?.url || a?.[0]?.url || null;
 
 export function buildProjectSlug(name: string, id: string): string {
-  const part = slugifySegment(name);
+  // Drop apostrophes so "Martina's" becomes "martinas", not "martina-s".
+  const part = slugifySegment(name.replace(/['’]/g, ""));
   return part ? `${part}-${id}` : id;
 }
 
