@@ -3,16 +3,17 @@ import type { Donation } from "@/lib/airtable";
 /** A confirmed payment from Givebutter's webhook, reduced to what matching needs. */
 export type ConfirmedTransaction = {
   id: string;
-  amount: number; // dollars
-  grossAmount: number | null; // dollars, includes covered fees
+  /** The paid amount in dollars, plus the gross amount when the donor covered fees.
+   * Givebutter's docs say cents, but live webhooks send dollars. */
+  amounts: number[];
   donorEmail: string | null;
   createdAt: string;
 };
 
 const WINDOW_MS = 6 * 60 * 60 * 1000;
 
-function sameMoney(a: number, b: number | null) {
-  return b !== null && Math.abs(a - b) < 0.01;
+function sameMoney(a: number, b: number) {
+  return Math.abs(a - b) < 0.005;
 }
 
 /**
@@ -27,7 +28,7 @@ export function pickPendingMatch(pending: Donation[], txn: ConfirmedTransaction)
   const paidAt = new Date(txn.createdAt).getTime();
   const candidates = pending.filter((donation) => {
     if (donation.status !== "Pending" || donation.transactionId) return false;
-    if (!sameMoney(donation.value, txn.amount) && !sameMoney(donation.value, txn.grossAmount)) return false;
+    if (!txn.amounts.some((amount) => sameMoney(donation.value, amount))) return false;
     if (Math.abs(new Date(donation.donationDate).getTime() - paidAt) > WINDOW_MS) return false;
     if (donation.donorEmail && txn.donorEmail && donation.donorEmail !== txn.donorEmail) return false;
     return true;

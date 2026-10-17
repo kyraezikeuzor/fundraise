@@ -39,7 +39,7 @@ async function transactionExists(id: string): Promise<boolean> {
 type Payload = { event?: string; type?: string; data?: Record<string, unknown> };
 
 const str = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : null);
-const cents = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v / 100 : null);
+const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : typeof v === "string" && v.trim() !== "" && Number.isFinite(Number(v)) ? Number(v) : null);
 
 /**
  * POST /api/givebutter/webhook
@@ -66,7 +66,8 @@ export async function POST(request: Request) {
 
     if (event === "transaction.succeeded") {
       const id = str(data.id);
-      const amount = cents(data.amount);
+      // Live webhooks send dollars (a $1 gift arrives as 1), though the docs say cents.
+      const amount = num(data.amount);
       if (!id || amount === null) return NextResponse.json({ error: "Missing transaction id or amount" }, { status: 400 });
 
       // Givebutter retries deliveries; a transaction is recorded once.
@@ -87,8 +88,9 @@ export async function POST(request: Request) {
       const donorName = anonymous ? "Anonymous" : [str(donor.first_name), str(donor.last_name)].filter(Boolean).join(" ") || undefined;
       const txn: ConfirmedTransaction = {
         id,
-        amount,
-        grossAmount: cents(data.gross_amount),
+        // Gross includes fees the donor chose to cover. Never also read the amount as
+        // cents: a $100 gift would then look like $1 and could match the wrong gift.
+        amounts: [amount, num(data.gross_amount)].filter((v): v is number => v !== null && v > 0),
         donorEmail: str(donor.email)?.toLowerCase() ?? null,
         createdAt: str(data.created_at) ?? new Date().toISOString(),
       };
